@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dleplugin>
+	<name>Preorder</name>
+	<description>Форма Предзаказа для DLE 9.5 и выше
+Версия: 1.1 релиз от 15.07.2013
+Назначение: Форма предзаказа товара со страниц краткой и полных новостей.</description>
+	<icon>engine/skins/images/tcse_preorder.png</icon>
+	<version>1.3.2</version>
+	<dleversion>13</dleversion>
+	<versioncompare>greater</versioncompare>
+	<upgradeurl></upgradeurl>
+	<filedelete>0</filedelete>
+	<needplugin></needplugin>
+	<mnotice>0</mnotice>
+	<mysqlinstall><![CDATA[INSERT INTO `{prefix}_admin_sections` (
+	`name`,
+	`title`,
+	`descr`,
+	`icon`,
+	`allow_groups`
+) 
+VALUES (
+	'preorder',
+	'Форма Предзаказа',
+	'Простая форма предзаказа',
+	'preorder.png',
+	'1'
+);]]></mysqlinstall>
+	<mysqlupgrade><![CDATA[]]></mysqlupgrade>
+	<mysqlenable><![CDATA[]]></mysqlenable>
+	<mysqldisable><![CDATA[]]></mysqldisable>
+	<mysqldelete><![CDATA[DELETE FROM `{prefix}_admin_sections` WHERE `name` = 'preorder';]]></mysqldelete>
+	<phpinstall><![CDATA[]]></phpinstall>
+	<phpupgrade><![CDATA[]]></phpupgrade>
+	<phpenable><![CDATA[]]></phpenable>
+	<phpdisable><![CDATA[]]></phpdisable>
+	<phpdelete><![CDATA[]]></phpdelete>
+	<notice><![CDATA[]]></notice>
+	<file name="engine/engine.php">
+		<operation action="after">
+			<searchcode><![CDATA[switch ( $do ) {]]></searchcode>
+			<replacecode><![CDATA[case "preorder" :
+		require_once (DLEPlugins::Check(ENGINE_DIR . '/modules/mod_tcse/preorder/preorder.php'));
+		break; ]]></replacecode>
+		</operation>
+	</file>
+	<file name="engine/modules/preorder.php">
+		<operation action="create">
+			<replacecode><![CDATA[<?php
+/**
+ =========================================================
+ Название модуля: Форма Предзаказа для DLE 9.5 и выше
+ ---------------------------------------------------------
+ Версия: 1.1 релиз от 15.07.2013
+ ---------------------------------------------------------
+ Правообладатель: Виталий Чуяков (tcse-cms.com)
+ ---------------------------------------------------------
+ Автор версии: Кирилл Родэ (kolos450@gmail.com)
+ ---------------------------------------------------------
+ Файл: preorder.php
+ ---------------------------------------------------------
+ Назначение: Форма предзаказа товара со страниц краткой и полных новостей.
+ ==========================================================
+*/
+if(!defined('DATALIFEENGINE')) die("Hacking attempt!");
+
+$mail_list = array (
+	"chuyakov@gmail.com",
+	"ana@tcse-cms.com"
+);
+
+include_once ENGINE_DIR . '/classes/mail.class.php';
+
+if($_POST['send'] == 'send') {
+	if( $_POST['preorder']['captcha'] != $_SESSION['sec_code_session'] OR ! $_SESSION['sec_code_session'] ) {
+		msgbox( "Ошибка", "Введён неверный код!<br /><a href=\"/index.php\" onclick=\"history.go(-1)\">Назад</a>" );
+		$_SESSION['sec_code_session'] = false;
+	}
+	else {
+		$_SESSION['sec_code_session'] = false;
+
+		$pr_name = strip_tags( stripslashes( trim( $_POST['preorder']['name'])));
+		$pr_price = strip_tags( stripslashes( trim( $_POST['preorder']['price'])));
+		$pr_code = strip_tags( stripslashes( trim( $_POST['preorder']['code'])));
+		$pr_user = strip_tags( stripslashes( trim( $_POST['preorder']['user'])));
+		$pr_time = strip_tags( stripslashes( trim( $_POST['preorder']['time'])));
+		$pr_feedback = strip_tags( stripslashes( trim( $_POST['preorder']['feedback'])));
+		$pr_comment = strip_tags( stripslashes( trim( $_POST['preorder']['comment'])));
+		
+		if(empty($pr_name) || empty($pr_user) || empty($pr_feedback)) {
+			msgbox( "Ошибка", "Заполните все необходимые поля!" );
+		}
+		else {
+			$message = "Наименование: $pr_name\r\n" .
+				"Цена: $pr_price\r\n" .
+				"Код: $pr_code\r\n" .
+				"Имя и отчество: $pr_user\r\n" .
+				"Удобное время для связи: $pr_time\r\n" .
+				"E-mail и / или телефон: $pr_feedback\r\n" .
+				"Комментарии: $pr_comment";
+				
+			foreach( $mail_list as $mail_unit ) {
+				$mail = new dle_mail( $config );
+				$mail -> send( $mail_unit, "TCSE: Форма предзаказа модуля  $pr_name", $message );
+				if( $mail->send_error ) msgbox( $lang['all_info'], $mail->smtp_msg );
+			}
+			msgbox( "Успех", "Спасибо. Ваш Предзаказ успешно отправлен!" );
+		}
+	}
+}
+?>]]></replacecode>
+		</operation>
+	</file>
+	<file name="engine/inc/preorder.php">
+		<operation action="create">
+			<replacecode><![CDATA[ <?php
+/*
+ * DLE-Preorder — Простой модуль отправки предзаказов для DLE
+ *
+ * @author     Talik <talik@tcse-cms.com>
+ */
+
+if (!defined('DATALIFEENGINE') || !defined('LOGGED_IN')) {
+	die('Hacking attempt!');
+}
+/**
+ * @global $member_id
+ */
+
+define('MODULE_DIR', ENGINE_DIR . '/modules/mod_tcse/preorder');
+
+echoheader('DLE-Preorder', 'Простой модуль отправки предзаказов для DLE');
+
+include MODULE_DIR . '/admin/main.php';
+
+include MODULE_DIR . '/admin/footer.php';
+
+echofooter();
+
+]]></replacecode>
+		</operation>
+	</file>
+</dleplugin>
